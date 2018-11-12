@@ -37,11 +37,19 @@ def parseargs(args=None):
     return parser.parse_args(args)
 
 
+class SentinelType:
+    def __init__(self, func):
+        self.func = func
+
+
 def execsetup(setup_py: Path):
     # Mock all function in the setuptools module.
     global setuptools
     sys.modules['setuptools'] = Mock(spec=setuptools)
     import setuptools
+
+    setuptools.find_packages.return_value = SentinelType(setuptools.find_packages)
+
 
     # Evaluate setup.py with our mocked setuptools and get kwargs given to setup().
     cwd = Path.cwd()
@@ -109,7 +117,7 @@ def py2cfg(setup, setuppy_dir, dangling_list_threshold):
 
     options = {}
     setif(setup, options, 'py_modules', list_comma)
-    setif(setup, options, 'packages', find_or_list_comma)
+
     setif(setup, options, 'zip_safe')
     setif(setup, options, 'setup_requires', list_semi)
     setif(setup, options, 'install_requires', list_semi)
@@ -138,6 +146,20 @@ def py2cfg(setup, setuppy_dir, dangling_list_threshold):
 
     if 'extras_require' in setup:
         sections['options.extras_require'] = extract_section(setup['extras_require'])
+
+    # TODO: Add a find packages change up...
+    packages = setup.get('packages')
+    if packages:
+        packages_find = ''
+        if isinstance(packages, SentinelType):
+            import pdb
+            pdb.set_trace()
+            sections['options.package'] = 'find:'
+        else:
+            sections['options.package'] = list_comma(packages)
+
+        if packages_find and setuptools.find_packages.called:
+            sections['options.packages.find'] = packages_find
 
     if 'package_data' in setup:
         sections['options.package_data'] = extract_section(setup['package_data'])
@@ -190,6 +212,7 @@ def ensure_list(value):
 
 def find_or_list_comma(value):
     # If find_packages() -> 'find:', else semicolon separated list.
+    # TODO: Get value of Mock... and take out
     return 'find:' if isinstance(value, Mock) else list_comma(value)
 
 
