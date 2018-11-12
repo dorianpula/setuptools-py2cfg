@@ -147,19 +147,14 @@ def py2cfg(setup, setuppy_dir, dangling_list_threshold):
     if 'extras_require' in setup:
         sections['options.extras_require'] = extract_section(setup['extras_require'])
 
-    # TODO: Add a find packages change up...
     packages = setup.get('packages')
     if packages:
-        packages_find = ''
         if isinstance(packages, SentinelType):
-            import pdb
-            pdb.set_trace()
             sections['options.package'] = 'find:'
+            sections['options.packages.find'] = list_comma(packages.func.call_args[0])
+            print(sections['options.packages.find'])
         else:
             sections['options.package'] = list_comma(packages)
-
-        if packages_find and setuptools.find_packages.called:
-            sections['options.packages.find'] = packages_find
 
     if 'package_data' in setup:
         sections['options.package_data'] = extract_section(setup['package_data'])
