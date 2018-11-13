@@ -38,8 +38,15 @@ def parseargs(args=None):
 
 
 class SentinelType:
-    def __init__(self, func):
-        self.func = func
+    def __init__(self, func, directive):
+        self._func = func
+        self.directive = directive
+
+    def get_package_details(self):
+        args, kwargs = self._func.call_args
+        new_kwargs = {k: v for k, v in zip(('where', 'include', 'exclude'), args)}
+        new_kwargs.update(kwargs)
+        return new_kwargs
 
 
 def execsetup(setup_py: Path):
@@ -48,7 +55,8 @@ def execsetup(setup_py: Path):
     sys.modules['setuptools'] = Mock(spec=setuptools)
     import setuptools
 
-    setuptools.find_packages.return_value = SentinelType(setuptools.find_packages)
+    setuptools.find_packages.return_value = SentinelType(setuptools.find_packages, 'find')
+    setuptools.find_namespace_packages.return_value = SentinelType(setuptools.find_namespace_packages, 'find_namespace')
 
     # Evaluate setup.py with our mocked setuptools and get kwargs given to setup().
     cwd = Path.cwd()
@@ -148,13 +156,8 @@ def py2cfg(setup, setuppy_dir, dangling_list_threshold):
     packages = setup.get('packages')
     if packages:
         if isinstance(packages, SentinelType):
-            options['packages'] = 'find:'
-            sections['options.packages.find'] = extract_section(
-                {k: v
-                 for k, v
-                 in zip(('where', 'exclude', 'include'), packages.func.call_args[0])})
-            # TODO: Add support for find_namespace
-            # See https://setuptools.readthedocs.io/en/latest/setuptools.html#options
+            options['packages'] = packages.directive + ':'
+            sections['options.packages.' + packages.directive] = extract_section(packages.get_package_details())
         else:
             sections['options.packages'] = list_comma(packages)
 
