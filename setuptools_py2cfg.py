@@ -153,7 +153,7 @@ def py2cfg(setup, setuppy_dir, dangling_list_threshold):
                                                 zip(('where', 'exclude', 'include'),
                                                      packages.func.call_args[0])})
         else:
-            sections['options.packages'] = extract_section({'where': list_comma(packages)})
+            sections['options.packages'] = list_comma(packages)
 
     if 'package_data' in setup:
         sections['options.package_data'] = extract_section(setup['package_data'])
