@@ -149,9 +149,12 @@ def py2cfg(setup, setuppy_dir, dangling_list_threshold):
     if packages:
         if isinstance(packages, SentinelType):
             options['packages'] = 'find:'
-            sections['options.packages.find'] = extract_section({k: v for k, v in
-                                                zip(('where', 'exclude', 'include'),
-                                                     packages.func.call_args[0])})
+            sections['options.packages.find'] = extract_section(
+                {k: v
+                 for k, v
+                 in zip(('where', 'exclude', 'include'), packages.func.call_args[0])})
+            # TODO: Add support for find_namespace
+            # See https://setuptools.readthedocs.io/en/latest/setuptools.html#options
         else:
             sections['options.packages'] = list_comma(packages)
 
