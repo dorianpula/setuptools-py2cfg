@@ -50,7 +50,6 @@ def execsetup(setup_py: Path):
 
     setuptools.find_packages.return_value = SentinelType(setuptools.find_packages)
 
-
     # Evaluate setup.py with our mocked setuptools and get kwargs given to setup().
     cwd = Path.cwd()
     setuppy_dir = setup_py.parent
@@ -117,7 +116,6 @@ def py2cfg(setup, setuppy_dir, dangling_list_threshold):
 
     options = {}
     setif(setup, options, 'py_modules', list_comma)
-
     setif(setup, options, 'zip_safe')
     setif(setup, options, 'setup_requires', list_semi)
     setif(setup, options, 'install_requires', list_semi)
@@ -150,11 +148,12 @@ def py2cfg(setup, setuppy_dir, dangling_list_threshold):
     packages = setup.get('packages')
     if packages:
         if isinstance(packages, SentinelType):
-            sections['options.package'] = 'find:'
-            sections['options.packages.find'] = list_comma(packages.func.call_args[0])
-            print(sections['options.packages.find'])
+            options['packages'] = 'find:'
+            sections['options.packages.find'] = extract_section({k: v for k, v in
+                                                zip(('where', 'exclude', 'include'),
+                                                     packages.func.call_args[0])})
         else:
-            sections['options.package'] = list_comma(packages)
+            sections['options.packages'] = extract_section({'where': list_comma(packages)})
 
     if 'package_data' in setup:
         sections['options.package_data'] = extract_section(setup['package_data'])
